@@ -1,22 +1,57 @@
-# Home-Lab
-A production-grade home infrastructure focused on high availability, security, and containerized service orchestration.
 
-## 🛠 Tech Stack
-**Runtime**: Docker, Docker Compose, WSL2.
+# 🏠🧪 Hybrid Home Lab & Security Research Sandbox
 
-**Networking**: Nginx (Reverse Proxy), Cloudflare (DNS/WAF), DDNS.
+![Architecture](https://img.shields.io/badge/Architecture-WSL2%20%7C%20Docker-blue)
+![Security](https://img.shields.io/badge/Security-VPN%20Sidecar%20%7C%20SSL-green)
+![Lab](https://img.shields.io/badge/Sandbox-FlareVM-red)
 
-**Security**: Let's Encrypt (ACME), HSTS, Port Obfuscation, Permission & Volume Mapping, User Invite & Management System.
+A production-grade, hybrid-OS home infrastructure focused on **Automation**, **Network Privacy**, and **Security Research**.
 
-**Services**: Portfolio Hosting, Custom Hosted Web Apps (C#/.NET/etc.), Private Cloud Storage Solution, Aggregated API Indexers, Metadata Retrieval Middleware, Automated Media Lifecycle Manager, Private Content Delivery Network (CDN), Automated Data Pipelines
+## 🏗️ Architecture Overview
+
+* **Host OS:** Windows 11 Pro (WSL2 Backend)
+* **Containerization:** Docker Desktop / Docker Compose
+* **Security Lab:** Isolated FlareVM (VirtualBox)
+* **Networking:** Nginx Proxy Manager + Gluetun VPN Sidecar
+* **Storage:** Dedicated NAS (SMB/NFS integration), internal server storage for docker files, Google Drive for backup of docker files
+
+## 📂 Repository Guide
+
+- **[docker-compose/](./docker-compose/):** Modular stacks for media, web services, and utilities.
+- **[docs/architecture.md](./docs/architecture.md):** Deep dive into the Windows/WSL2 hybrid logic.
+- **[docs/malware-sandbox.md](./docs/malware-sandbox.md):** SOP for the FlareVM and VirusTotal analysis workflow.
+- **[docs/networking.md](./docs/networking.md):** Routing, Reverse Proxy, and SSL management.
+
+## 🚀 Key Achievements
+
+- **Hardened Ingress:** Implemented single-point entry via Nginx with automated Let's Encrypt certificates.
+- **Privacy-First Routing:** Utilized Network Namespacing (Gluetun) to force specific service traffic through Wireguard.
+- **Resource Optimization:** Configured NVIDIA GPU Passthrough in WSL2 for hardware-accelerated transcoding.
 
 
-## 📐 Key Architectural Achievements
-**Zero-Trust Inspired Edge**: Implemented a single-entry point via Nginx, reducing the public attack surface from multiple open ports to just 80/443.
+---
 
-**Automated Certificate Lifecycle**: Configured ACME protocols for automated SSL renewal, maintaining 100% uptime for encrypted traffic on .dev domains.
 
-**Automated Asset Management**: Orchestrated a containerized pipeline to automate the discovery, acquisition, and organization of digital assets.
-- **Tooling**: Utilized a suite of specialized automation tools to monitor RSS feeds and APIs for new content.
-- **Logic**: Configured custom quality profiles to ensure assets meet specific standards before being ingested.
-- **Storage**: Integrated with an atomic-move filesystem structure to minimize I/O overhead during library organization.
+
+## 🗺️ Roadmap & Future Improvements
+
+While the current infrastructure is stable and performant, I am actively working toward a more enterprise-aligned architecture.
+
+### Phase 1: Bare-Metal Linux Migration (In Progress)
+
+* **Goal:** Eliminate the WSL2 abstraction layer to gain native I/O performance.
+* **Action:** Transition the primary host from Windows 11 to **Proxmox VE** or  **Debian Stable** . This will allow for dedicated LXC containers and better resource isolation.
+
+### Phase 2: True Network Segmentation
+
+* **Goal:** Move from a flat network to a **VLAN-based architecture** .
+* **Action:** Implement a managed switch and a dedicated firewall (OPNsense/pfSense).
+  * **VLAN 10 (Management):** Host access and NAS administration.
+  * **VLAN 20 (Production):** Internal services (Arrs, Actual, Tautulli).
+  * **VLAN 30 (DMZ):** Exposed services (FairShare, Portfolio).
+  * **VLAN 40 (Lab):** High-risk isolation for the FlareVM sandbox.
+
+### Phase 3: Infrastructure as Code (IaC)
+
+* **Goal:** Replace manual Docker Compose deployments with automated configuration management.
+* **Action:** Integrate **Ansible** for host hardening and **Terraform** for managing Cloudflare DNS records and Nginx Proxy Manager configurations.

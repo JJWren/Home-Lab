@@ -1,0 +1,63 @@
+name: public-services
+
+services:
+  # REVERSE PROXY: The Gatekeeper
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - '80:80'   # HTTP
+      - '81:81'   # Admin UI
+      - '443:443' # HTTPS
+    volumes:
+      - ${PATH_CONFIG}/npm/data:/data
+      - ${PATH_CONFIG}/npm/letsencrypt:/etc/letsencrypt
+
+  # OVERSEERR: Request Management
+  overseerr:
+    image: sgeto/overseerr:latest
+    container_name: overseerr
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ}
+    volumes:
+      - ${PATH_CONFIG}/overseerr:/app/config
+    ports:
+      - 5055:5055
+    restart: unless-stopped
+
+  # FAIRSHARE: Custom Logic App
+  fairshare:
+    image: ghcr.io/jjwren/fairshare:latest
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_HTTP_PORTS: "9090"   # container listens on 9090
+      UI__DefaultTheme: "dark"        # light|dark|auto
+      ConnectionStrings__Default: "Data Source=/data/fairshare.db"    # you need a data folder in your fairshare container
+      AdminSeed__Enabled: "true"      # this pulls the initial admin config from the docker-compose/env that you will create for this
+      AdminSeed__User: "${AdminSeed__User}"    # this should be set in an .env file
+      AdminSeed__Password: "${AdminSeed__Password}"
+      AdminSeed__LogGeneratedPassword: "true"
+    ports:
+      - "9090:9090"
+    volumes:
+      - "${PATH_CONFIG}/fairshare:/data"    # you need a data folder in your fairshare container
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9090/healthz"]
+      interval: 10s
+      timeout: 2s
+      retries: 6
+    restart: unless-stopped
+
+  # PERSONAL WEBSITE
+  portfolio:
+    image: nginx:alpine
+    container_name: personal-portfolio
+    volumes:
+      - ${PATH_PORTFOLIO_HTML}:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+networks:
+  default:
+    name: public-ingress-net
