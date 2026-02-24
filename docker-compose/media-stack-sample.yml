@@ -50,3 +50,6 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
+  # Additional services can be added here
+  
