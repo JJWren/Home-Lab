@@ -13,14 +13,30 @@ A production-grade, hybrid-OS home infrastructure focused on **Automation**, **N
 * **Containerization:** Docker Desktop / Docker Compose
 * **Security Lab:** Isolated FlareVM (VirtualBox)
 * **Networking:** Nginx Proxy Manager + Gluetun VPN Sidecar
-* **Storage:** Dedicated NAS (SMB/NFS integration), internal server storage for docker files, Google Drive for backup of docker files
+* **Storage:**
+    * **Primary:** Dedicated NAS (SMB/NFS integration).
+    * **Operational:** Internal server storage for high-I/O Docker configurations.
+    * **Offsite:** Automated Google Drive synchronization for disaster recovery of configuration metadata.
 
 ## 📂 Repository Guide
 
-- **[docker-compose/](./docker-compose/):** Modular stacks for media, web services, and utilities.
-- **[docs/architecture.md](./docs/architecture.md):** Deep dive into the Windows/WSL2 hybrid logic.
-- **[docs/malware-sandbox.md](./docs/malware-sandbox.md):** SOP for the FlareVM and VirusTotal analysis workflow.
-- **[docs/networking.md](./docs/networking.md):** Routing, Reverse Proxy, and SSL management.
+* **docker-compose/:** The "Heart" of the lab. Modularized YAML stacks (Media, Exposed, Utilities) and an .env.example for environment replication.
+
+* **docs/:** Technical documentation hub.
+
+    * **Architecture:** Deep dive into the hybrid Windows/WSL2 logic and NAS storage migration.
+
+    * **Networking:** Ingress/Egress strategies, VPN namespaces, and SSL lifecycle.
+
+    * **Malware Sandbox:** Security research SOPs, FlareVM hardening, and VirusTotal integration.
+
+    * **Projects/:** Showcases of custom-developed applications hosted in the lab.
+
+        * **FairShare Calculator:** Full-stack deployment specs and privacy-by-design architecture.
+
+        * **Personal Portfolio:** Nginx static hosting and security hardening.
+
+* **configs/:** Sanitized configuration templates for Nginx, VPN profiles, and application-specific hardening.
 
 ## 🚀 Key Achievements
 
