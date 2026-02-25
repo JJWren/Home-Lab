@@ -1,63 +1,168 @@
-name: public-services
+name: exposed-services
+
+networks:
+  proxy:
+    external: true
+    name: proxy
+  arrs_default:
+    external: true
+    name: arrs_default
 
 services:
-  # REVERSE PROXY: The Gatekeeper
-  nginx-proxy-manager:
-    image: 'jc21/nginx-proxy-manager:latest'
-    container_name: nginx-proxy-manager
-    restart: unless-stopped
-    ports:
-      - '80:80'   # HTTP
-      - '81:81'   # Admin UI
-      - '443:443' # HTTPS
-    volumes:
-      - ${PATH_CONFIG}/npm/data:/data
-      - ${PATH_CONFIG}/npm/letsencrypt:/etc/letsencrypt
 
-  # OVERSEERR: Request Management
-  overseerr:
-    image: sgeto/overseerr:latest
-    container_name: overseerr
+  #########################
+  # ACTUAL - Budgeting App
+  #########################
+  actual:
+    image: actualbudget/actual-server:latest
+    container_name: actual
+    networks: [proxy]
+    ports:
+      - "${ACTUAL_PORT}:${ACTUAL_PORT}"
+    restart: unless-stopped
+    volumes:
+      - ./actual-data:/data   # persists everything (server + user files)
     environment:
-      - LOG_LEVEL=info
+      - ACTUAL_PORT=${ACTUAL_PORT}
+
+  #########################
+  # AUDIOBOOKSHELF - Audiobooks & Podcasts
+  #########################
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    container_name: audiobookshelf
+    networks: [proxy]
+    ports:
+      - "${ABS_PORT}:${EXTERNAL_WEB_PORT}"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ${PATH_CONFIG}/overseerr:/app/config
-    ports:
-      - 5055:5055
+      - "M:/media/audiobooks:/audiobooks"
+      - "M:/media/podcasts:/podcasts"
+      - "./audiobookshelf/config:/config"
+      - "./audiobookshelf/metadata:/metadata"
     restart: unless-stopped
 
-  # FAIRSHARE: Custom Logic App
+  #########################
+  # FAIRSHARE - CS Calculator
+  #########################
   fairshare:
-    image: ghcr.io/jjwren/fairshare:latest
+    image: ghcr.io/jjwren/fairshare:main
+    container_name: fairshare
+    networks: [proxy]
+    ports:
+      - "${FAIRSHARE_PORT}:${FAIRSHARE_PORT}"
     environment:
-      ASPNETCORE_ENVIRONMENT: "Production"
-      ASPNETCORE_HTTP_PORTS: "9090"   # container listens on 9090
-      UI__DefaultTheme: "dark"        # light|dark|auto
-      ConnectionStrings__Default: "Data Source=/data/fairshare.db"    # you need a data folder in your fairshare container
-      AdminSeed__Enabled: "true"      # this pulls the initial admin config from the docker-compose/env that you will create for this
-      AdminSeed__User: "${AdminSeed__User}"    # this should be set in an .env file
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT}"
+      ASPNETCORE_HTTP_PORTS: "${FAIRSHARE_PORT}"
+      UI__DefaultTheme: "dark"   # <— set default here (light|dark|auto)
+      ConnectionStrings__Default: "Data Source=/data/fairshare.db"
+      AdminSeed__Enabled: "true"
+      AdminSeed__User: "${AdminSeed__User}"
       AdminSeed__Password: "${AdminSeed__Password}"
       AdminSeed__LogGeneratedPassword: "true"
-    ports:
-      - "9090:9090"
     volumes:
-      - "${PATH_CONFIG}/fairshare:/data"    # you need a data folder in your fairshare container
+      - "./fairshare/data:/data"
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:9090/healthz"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:${FAIRSHARE_PORT}/healthz"]
       interval: 10s
       timeout: 2s
       retries: 6
     restart: unless-stopped
 
-  # PERSONAL WEBSITE
-  portfolio:
-    image: nginx:alpine
-    container_name: personal-portfolio
-    volumes:
-      - ${PATH_PORTFOLIO_HTML}:/usr/share/nginx/html:ro
+  #########################
+  # KAVITA - eBook reader
+  #########################
+  kavita:
+    image: jvmilazz0/kavita:latest
+    container_name: kavita
+    networks: [proxy]
+    ports:
+      - "${KAVITA_PORT}:${KAVITA_PORT}"
     restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - "./kavita/config:/kavita/config"
+      - "M:/media/books/cbz:/media/books/cbz"
+      - "M:/media/books/epub:/media/books/epub"
+      - "M:/media/books/pdf:/media/books/pdf"
 
-networks:
-  default:
-    name: public-ingress-net
+  #########################
+  # KOMGA - eComic reader
+  #########################
+  komga:
+    image: gotson/komga:latest
+    container_name: komga
+    networks: [proxy]
+    ports:
+      - "${KOMGA_PORT}:${KOMGA_PORT}"
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - JAVA_TOOL_OPTIONS=-Xmx4g
+    volumes:
+      - "./komga/config:/config"
+      - "M:/media/books/cbz:/media/books/cbz:ro"
+      - "M:/media/books/epub:/media/books/epub:ro"
+      - "M:/media/books/pdf:/media/books/pdf:ro"
+
+  #########################
+  # OVERSEERR - Media requests
+  #########################
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: overseerr
+    networks:
+      - proxy
+      - arrs_default
+    ports:
+      - "${OVERSEERR_PORT}:${OVERSEERR_PORT}"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - "./overseerr/config:/config"
+    restart: unless-stopped
+    
+  #########################
+  # TAUTULLI - Plex analytics
+  #########################
+  tautulli:
+    image: ghcr.io/tautulli/tautulli
+    container_name: tautulli
+    restart: unless-stopped
+    volumes:
+      - "./tautulli/config:/config"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    networks: [proxy]
+    ports:
+      - "${TAUTULLI_PORT}:${TAUTULLI_PORT}"
+    
+  #########################
+  # WIZARR (media user invitation tool)
+  #########################
+  wizarr:
+    container_name: wizarr
+    restart: unless-stopped
+    networks: [proxy]
+    ports:
+      - "${WIZARR_PORT}:${WIZARR_PORT}"
+    image: ghcr.io/wizarrrr/wizarr
+    volumes:
+      - ./wizarr/data:/data
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - DISABLE_BUILTIN_AUTH=false #Set to true ONLY if you are using another auth provider (Authelia, Authentik, etc)

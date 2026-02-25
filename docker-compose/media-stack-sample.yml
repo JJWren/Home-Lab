@@ -1,55 +1,54 @@
-name: media-pipeline
+name: media-server
 
 services:
-  gluetun:
-    image: qmcgaw/gluetun:latest
-    container_name: gluetun
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    environment:
-      - VPN_SERVICE_PROVIDER=protonvpn
-      - VPN_TYPE=wireguard
-      - WIREGUARD_PRIVATE_KEY=${VPN_PRIVATE_KEY}
-      - WIREGUARD_ADDRESSES=${VPN_ADDRESSES}
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    network_mode: bridge
     ports:
-      - 8081:8081 # qBittorrent
-      - 9696:9696 # Prowlarr
-      - 7878:7878 # Radarr
-      - 8989:8989 # Sonarr
-    restart: unless-stopped
-
-  qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest
-    container_name: qbittorrent
-    network_mode: "service:gluetun"
+      - ${PLEX_WEBUI_PORT}:${PLEX_WEBUI_PORT}
+      - ${PLEX_DLNA_PORT}:${PLEX_DLNA_PORT}
+      - ${PLEX_DLNA_DISC_PORT}:${PLEX_DLNA_DISC_PORT}
+      - ${PLEX_COMPANION_PORT}:${PLEX_COMPANION_PORT}
+      - ${PLEX_ROKU_PORT}:${PLEX_ROKU_PORT}
+      - ${PLEX_GDM1_PORT}:${PLEX_GDM1_PORT}
+      - ${PLEX_GDM2_PORT}:${PLEX_GDM2_PORT}
+      - ${PLEX_GDM3_PORT}:${PLEX_GDM3_PORT}
+      - ${PLEX_GDM4_PORT}:${PLEX_GDM4_PORT}
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
-    volumes:
-      - "${PATH_CONFIG}/qbittorrent:/config"
-      - "${PATH_DOWNLOADS}:/downloads"
-    restart: unless-stopped
+      - TZ=${TZ}
+      - VERSION=docker
+      - ADVERTISE_IP=${MY_IPV4}:${PLEX_WEBUI_PORT},${PLEX_DIRECT_CONNECT}
 
-  tdarr:
-    image: ghcr.io/haveagitgat/tdarr:latest
-    container_name: tdarr
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - NVIDIA_DRIVER_CAPABILITIES=all
-      - NVIDIA_VISIBLE_DEVICES=all
     volumes:
-      - "${PATH_CONFIG}/tdarr:/app/server"
-      - "${PATH_MEDIA}:/media"
+      - "./plex/config:/config"
+      - "./plex/transcode:/transcode"
+      - "M:/media:/media"
+      
+    # Request GPUs (Compose will pass this through on Docker Desktop)
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
+              count: all
               capabilities: [gpu]
 
-  # Additional services can be added here
+    restart: unless-stopped
   
+  kometa:
+    image: kometateam/kometa:latest
+    container_name: kometa
+    volumes:
+      - "./kometa/config:/config"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - KOMETA_RUN=True
+      - KOMETA_LOG_LEVEL=DEBUG
+      - KOMETA_TIME=02:00,14:00 # sample schedule, change as needed
+    command: ["--run"]
+    restart: "unless-stopped"

@@ -1,0 +1,244 @@
+name: arrs
+
+services:
+    
+  #########################
+  # BAZARR (subtitles)
+  #########################
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - "./bazarr/config:/config"
+      - "M:/data/downloads:/downloads"
+      - "M:/media/movies:/media/movies"
+      - "M:/media/tv:/media/tv"
+    restart: unless-stopped
+    
+  #########################
+  # FLARESOLVERR (cloudflare solver)
+  #########################
+  
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    
+  #########################
+  # GLUETUN (vpn/firewall)
+  #########################
+  
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    ports:
+      - ${QBIT_WEBUI_PORT}:${QBIT_WEBUI_PORT}
+      - ${QBIT_UDP_PORT}:${QBIT_UDP_PORT}/udp
+      - ${PROWL_PORT}:${PROWL_PORT}
+      - ${RAD_PORT}:${RAD_PORT}
+      - ${SON_PORT}:${SON_PORT}
+      - ${LID_PORT}:${LID_PORT}
+      # - ${READ_PORT}:${READ_PORT}
+      - ${BAZ_PORT}:${BAZ_PORT}
+      - ${FLARE_PORT}:${FLARE_PORT}
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - VPN_SERVICE_PROVIDER=${VPN_SERVICE}
+      - VPN_TYPE=${VPN_TYPE}
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      # Optional but recommended to lock it to the config IP
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESS}
+      - VPN_PORT_FORWARDING=on
+      - SERVER_COUNTRIES=Canada
+    restart: unless-stopped
+    
+  #########################
+  # LIDARR (music)
+  #########################
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - "./lidarr/config:/config"
+      - "M:/data/downloads:/downloads"
+      - "M:/media/music:/media/music"
+    restart: unless-stopped
+    
+  #########################
+  # NZBGET (dl client - usenet)
+  #########################
+
+  nzbget:
+    image: nzbgetcom/nzbget:latest
+    container_name: nzbget
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - NZBGET_USER=${NZBGET_USER}
+      - NZBGET_PASS=${NZBGET_PASS}
+    volumes:
+      - "./nzbget/config:/config"
+      - "M:/data/downloads:/downloads" #optional
+    ports:
+      - 6789:6789
+    restart: unless-stopped
+    
+  #########################
+  # PROWLARR (indexer mgr)
+  #########################
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - "./prowlarr/config:/config"
+      - "M:/data/downloads:/downloads"
+    restart: unless-stopped
+    
+  #########################
+  # QBITTORRENT (dl client - torrent)
+  #########################
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - WEBUI_PORT=${QBIT_WEBUI_PORT}
+      - TORRENTING_PORT=${QBIT_UDP_PORT}
+    volumes:
+      - "./qbittorrent/config:/config"
+      - "M:/data/downloads:/downloads"
+    restart: unless-stopped
+    
+  #########################
+  # RADARR (movies)
+  #########################
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - "./radarr/config:/config"
+      - "M:/data/downloads:/downloads"
+      - "M:/media/movies:/media/movies"
+    restart: unless-stopped
+    
+  ########################
+  READARR (books)
+  ########################
+
+  readarr:
+    image: lscr.io/linuxserver/readarr:develop
+    platform: linux/amd64
+    container_name: readarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - "./readarr/config:/config"
+      - "M:/data/downloads:/downloads"
+      - "M:/media/books:/media/books"
+    restart: unless-stopped
+    
+  ########################
+  SONARR (tv)
+  ########################
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - "./sonarr/config:/config"
+      - "M:/data/downloads:/downloads"
+      - "M:/media/tv:/media/tv"
+    restart: unless-stopped
+    
+  #########################
+  # TDARR (server + node)
+  #########################
+
+  tdarr:
+    image: ghcr.io/haveagitgat/tdarr:latest
+    container_name: tdarr
+    ports:
+      - "${TD_UI_PORT}:${TD_UI_PORT}"
+      - "${TD_SERVER_PORT}:${TD_SERVER_PORT}"
+      - "${TD_NODE_PORT}:${TD_NODE_PORT}"
+      - "${TD_XTRA_NODE_PORT}:${TD_XTRA_NODE_PORT}"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - serverIP=0.0.0.0
+      - serverPort=${TD_SERVER_PORT}
+      - webUIPort=${TD_UI_PORT}
+      - internalNode=true
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      # Tdarr app/config/logs + temp workspace
+      - "./tdarr/server:/app/server"
+      - "./tdarr/configs:/app/configs"
+      - "./tdarr/logs:/app/logs"
+      - "./tdarr/temp:/temp"
+
+      # Media libraries (ADD ALL YOUR LIBRARIES HERE)
+      - "M:/media/movies:/media/movies"
+      - "M:/media/tv:/media/tv"
+      - "M:/tdarr:/tdarr_cache"
+    gpus: all
+    # deploy:
+      # resources:
+        # reservations:
+          # devices:
+            # - capabilities:
+              # - gpu
+    restart: unless-stopped

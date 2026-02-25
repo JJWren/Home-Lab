@@ -1,35 +1,54 @@
-name: lab-utilities
+name: utilities-stack
+
+networks:
+  proxy:
+    external: true
 
 services:
-  # KOMETA: Metadata Automation for Plex
-  kometa:
-    image: kometateam/kometa
-    container_name: kometa
-    volumes:
-      - ${PATH_CONFIG}/kometa:/config
+  # -- PROXY MANAGER --
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
     restart: unless-stopped
-
-  # ACTUAL: Self-hosted Budgeting
-  actual-budget:
-    image: actualbudget/actual-server:latest
-    container_name: actual-budget
-    ports:
-      - 5006:5006
-    environment:
-      - TZ=${TZ}
-    volumes:
-      - ${PATH_CONFIG}/actual:/data
-    restart: unless-stopped
-
-  # TAUTULLI: Plex Monitoring
-  tautulli:
-    image: lscr.io/linuxserver/tautulli:latest
-    container_name: tautulli
+    networks: [proxy]
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
-    volumes:
-      - ${PATH_CONFIG}/tautulli:/config
+      - TZ=${TZ}
     ports:
-      - 8181:8181
-    restart: unless-stopped
+      - "${EXTERNAL_WEB_PORT}:${EXTERNAL_WEB_PORT}"
+      - "${EXTERNAL_SECURE_PORT}:${EXTERNAL_SECURE_PORT}"
+      - "${NPM_ADMIN_PORT}:${NPM_ADMIN_PORT}"
+    volumes:
+      - "./npm/data:/data"
+      - "./npm/letsencrypt:/etc/letsencrypt"
+    
+  # -- APP DASHBOARD --
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    networks: [proxy]
+    environment:
+      - HOMEPAGE_ALLOWED_HOSTS=gethomepage.dev,localhost
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    ports:
+      - ${HOMEPAGE_PORT}:${HOMEPAGE_PORT}
+    volumes:
+      - "./homepage/config:/app/config" # Make sure your local config directory exists
+      - "./homepage/var/run/docker.sock:/var/run/docker.sock"
+  
+  # -- VIDEO FILE MULTIPLEXER --
+  mkvtoolnix:
+    image: jlesage/mkvtoolnix
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    ports:
+      - "${MKV_PORT}:${MKV_PORT}"
+    volumes:
+      - "./mkvtoolnix:/config:rw"
+      - "/home/user:/storage:rw"
+      - "M:/media:/media:rw"
