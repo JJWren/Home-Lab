@@ -1,12 +1,12 @@
-# Scripts for Homelab Automation
+# 📝 Scripts for Homelab Automation
 
 This directory contains script examples and utilities for managing a production-grade homelab, focusing on automation, high availability, and secure container orchestration.
 
-## Overview
+## 🔎 Overview
 
 The scripts in this folder are intended to streamline frequent infrastructure tasks, such as backups, updates, and stack management, typically in a Docker-based home lab environment. They can be customized to fit the specific needs and structure of your setup.
 
-### Example: Docker Backup Script
+### Example: 💾 Docker Backup Script
 
 #### [`Backup-Docker.ps1`](Backup-Docker.ps1)
 
@@ -41,7 +41,7 @@ See the script comments for detailed instructions.
 
 ---
 
-## Adding Your Own Scripts
+## ➕ Adding Your Own Scripts
 
 Ideas for additional automation needs:
 
