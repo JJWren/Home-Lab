@@ -2,7 +2,7 @@
 
 This directory contains script examples and utilities for managing a production-grade homelab, focusing on automation, high availability, and secure container orchestration.
 
-## Script Overview
+## Overview
 
 The scripts in this folder are intended to streamline frequent infrastructure tasks, such as backups, updates, and stack management, typically in a Docker-based home lab environment. They can be customized to fit the specific needs and structure of your setup.
 
