@@ -53,6 +53,7 @@ services:
       # - ${READ_PORT}:${READ_PORT}
       - ${BAZ_PORT}:${BAZ_PORT}
       - ${FLARE_PORT}:${FLARE_PORT}
+      - ${NOTIFI_PORT}:${NOTIFI_PORT} # notifiarr
     cap_add:
       - NET_ADMIN
     devices:
@@ -90,6 +91,24 @@ services:
       - "M:/media/music:/media/music"
     restart: unless-stopped
     
+  #########################
+  # NOTIFIARR (notifications)
+  #########################
+
+  notifiarr:
+    image: golift/notifiarr
+    container_name: notifiarr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    volumes:
+      - "./notifiarr:/config"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - DN_API_KEY=${NOTIFI_API}
+      - DN_UI_PASSWORD=${NOTIFI_PASS}
+
   #########################
   # NZBGET (dl client - usenet)
   #########################
@@ -164,28 +183,30 @@ services:
       - "M:/media/movies:/media/movies"
     restart: unless-stopped
     
-  ########################
-  READARR (books)
-  ########################
+  #########################
+  # READARR (books)
+  #########################
+  # Retired: Readarr development was discontinued upstream. Kept here
+  # commented out for reference in case a maintained fork appears.
 
-  readarr:
-    image: lscr.io/linuxserver/readarr:develop
-    platform: linux/amd64
-    container_name: readarr
-    network_mode: "service:gluetun"
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-    volumes:
-      - "./readarr/config:/config"
-      - "M:/data/downloads:/downloads"
-      - "M:/media/books:/media/books"
-    restart: unless-stopped
-    
-  ########################
-  SONARR (tv)
-  ########################
+  # readarr:
+  #   image: lscr.io/linuxserver/readarr:develop
+  #   platform: linux/amd64
+  #   container_name: readarr
+  #   network_mode: "service:gluetun"
+  #   environment:
+  #     - PUID=${PUID}
+  #     - PGID=${PGID}
+  #     - TZ=${TZ}
+  #   volumes:
+  #     - "./readarr/config:/config"
+  #     - "M:/data/downloads:/downloads"
+  #     - "M:/media/books:/media/books"
+  #   restart: unless-stopped
+
+  #########################
+  # SONARR (tv)
+  #########################
 
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest

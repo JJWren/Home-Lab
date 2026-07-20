@@ -24,7 +24,7 @@ To ensure ease of maintenance, clear separation of concerns, and minimal blast r
 * **Purpose:** Secure ingress and routing for public-facing services and custom web apps.
 * **Key Features:**
   - Sits behind an Nginx-based reverse proxy (Nginx Proxy Manager) with automated SSL and multi-app support.
-  - Includes apps like Overseerr (media requests), FairShare (custom CS calculator), and a static personal portfolio website.
+  - Includes apps like Seerr (media requests), FairShare (custom CS calculator, split into API + web containers), Mealie (recipes), Actual (budgeting), Kavita/Komga/Komf (reading + metadata), Audiobookshelf, Tautulli, and Wizarr.
 * **Sample Compose:** [`exposed-stack-sample.yml`](exposed-stack-sample.yml)
 
 ### 3. Media Server Stack
@@ -42,6 +42,16 @@ To ensure ease of maintenance, clear separation of concerns, and minimal blast r
   - Apps like Nginx Proxy Manger (proxy), MKV (video file multiplexer), and Homepage (app dashboard) for a comprehensive utilities.
 * **Sample Compose:** [`utilities-stack-sample.yml`](utilities-stack-sample.yml)
 
+### 5. CalCrony Stack (Custom App)
+
+* **Purpose:** Production deployment of [CalCrony](https://github.com/JJWren/CalCrony), a custom scheduling app (API + Discord bot + web frontend + PostgreSQL).
+* **Key Features:**
+  - Healthcheck-gated startup ordering (`depends_on: condition: service_healthy`) — Postgres → API (runs migrations) → bot/web.
+  - Pinned image tags in production (`CALCRONY_IMAGE_TAG`), `latest` reserved for a parallel test stack with its own Discord app id.
+  - Required-secret enforcement via `${VAR:?}` so the stack refuses to start half-configured.
+  - Named volumes for Postgres data and DataProtection keys (see backup notes in [`../configs/scripts/`](../configs/scripts/)).
+* **Sample Compose:** [`calcrony-stack-sample.yml`](calcrony-stack-sample.yml)
+
 ## 🛠️ Deployment Instructions
 
 ### 1. Prerequisites
@@ -54,9 +64,9 @@ To ensure ease of maintenance, clear separation of concerns, and minimal blast r
 
 All stacks use variable substitution for secrets, credentials, and host paths.
 
-1. Copy the relevant `.env` sample (e.g. `arrs-env-sample.env`) to `.env`
-2. Fill in your environment-specific values (UID/GID, keys, volume paths, credentials, etc.)
-3. Optionally update `/your-data` and `/your-media` in YAML to your actual media/storage mount points
+1. Copy the relevant per-stack sample ([`arrs-env-sample.env`](arrs-env-sample.env), [`exposed-env-sample.env`](exposed-env-sample.env), [`media-env-sample.env`](media-env-sample.env), [`utilities-env-sample.env`](utilities-env-sample.env), [`calcrony-env-sample.env`](calcrony-env-sample.env)) to `.env` in that stack's folder
+2. Fill in your environment-specific values (UID/GID, keys, volume paths, credentials, etc.) — [`.env.example`](.env.example) documents the globals shared by every stack
+3. Optionally update the `M:/...` volume paths in the YAML to your actual media/storage mount points
 
 ### 3. Initializing Stacks
 

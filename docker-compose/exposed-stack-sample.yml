@@ -46,29 +46,62 @@ services:
     restart: unless-stopped
 
   #########################
-  # FAIRSHARE - CS Calculator
+  # FAIRSHARE - CS Calculator (API + Web, browser calls the API directly)
   #########################
-  fairshare:
-    image: ghcr.io/jjwren/fairshare:main
-    container_name: fairshare
+  fairshare-api:
+    build:
+      # Clone JJWren/FairShare and point the context at it (or swap for a
+      # registry image if you publish one).
+      context: ../FairShare
+      dockerfile: src/FairShare.Api/Dockerfile
+    container_name: fairshare-api
     networks: [proxy]
     ports:
-      - "${FAIRSHARE_PORT}:${FAIRSHARE_PORT}"
+      - "${FAIRSHARE_API_PORT}:8080"
     environment:
-      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT}"
-      ASPNETCORE_HTTP_PORTS: "${FAIRSHARE_PORT}"
-      UI__DefaultTheme: "dark"   # <— set default here (light|dark|auto)
+      ASPNETCORE_ENVIRONMENT: "Production"
+      # /data (not /app/data): the API image pre-creates /data owned by its non-root
+      # user; any other mountpoint comes up root-owned and unwritable.
       ConnectionStrings__Default: "Data Source=/data/fairshare.db"
-      AdminSeed__Enabled: "true"
+      Jwt__SigningKey: "${FAIRSHARE_JWT_SIGNING_KEY:?Set FAIRSHARE_JWT_SIGNING_KEY in .env}"
+      AdminSeed__Enabled: "${ADMIN_SEED_ENABLED:-true}"
       AdminSeed__User: "${AdminSeed__User}"
       AdminSeed__Password: "${AdminSeed__Password}"
-      AdminSeed__LogGeneratedPassword: "true"
+      AdminSeed__LogGeneratedPassword: "${ADMIN_SEED_LOG_GENERATED_PASSWORD:-true}"
+      Auth__AllowSelfRegistration: "${ALLOW_SELF_REGISTRATION:-false}"
+      Cors__AllowedOrigins__0: "${FAIRSHARE_WEB_ORIGIN}"
     volumes:
-      - "./fairshare/data:/data"
+      # Named volume, NOT a bind mount: if this compose lives on a mapped network
+      # drive, SQLite cannot hold write locks over SMB ("attempt to write a
+      # readonly database" / segfaults). The db lives in Docker's VM disk instead.
+      - "fairshare-data:/data"
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:${FAIRSHARE_PORT}/healthz"]
+      # aspnet images ship no curl/wget; bash + /dev/tcp does the HTTP GET.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /healthz HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
       interval: 10s
-      timeout: 2s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+
+  fairshare-web:
+    build:
+      context: ../FairShare
+      dockerfile: src/FairShare.Web/Dockerfile
+    container_name: fairshare-web
+    networks: [proxy]
+    ports:
+      - "${FAIRSHARE_PORT}:80"
+    environment:
+      # Browser-visible API URL (the browser makes the calls, not this container).
+      API_BASE_URL: "${FAIRSHARE_API_BASE_URL}"
+    depends_on:
+      fairshare-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 3s
       retries: 6
     restart: unless-stopped
 
@@ -88,9 +121,8 @@ services:
       - TZ=${TZ}
     volumes:
       - "./kavita/config:/kavita/config"
-      - "M:/media/books/cbz:/media/books/cbz"
-      - "M:/media/books/epub:/media/books/epub"
-      - "M:/media/books/pdf:/media/books/pdf"
+      - "M:/media/books_curated/cbz:/media/books_curated/cbz"
+      - "M:/media/books_curated/epub:/media/books_curated/epub"
 
   #########################
   # KOMGA - eComic reader
@@ -109,29 +141,73 @@ services:
       - JAVA_TOOL_OPTIONS=-Xmx4g
     volumes:
       - "./komga/config:/config"
-      - "M:/media/books/cbz:/media/books/cbz:ro"
-      - "M:/media/books/epub:/media/books/epub:ro"
-      - "M:/media/books/pdf:/media/books/pdf:ro"
+      - "M:/media/books_curated/cbz:/media/books_curated/cbz:ro"
 
   #########################
-  # OVERSEERR - Media requests
+  # KOMF - Komga/Kavita metadata fetcher
   #########################
-  overseerr:
-    image: lscr.io/linuxserver/overseerr:latest
-    container_name: overseerr
+  komf:
+    image: sndxr/komf:latest
+    container_name: komf
+    networks: [proxy]
+    ports:
+      - "${KOMF_PORT}:${KOMF_PORT}"
+    environment:
+      # Point Komf at Komga/Kavita (service names resolve on the shared network).
+      # Keep the credentials in .env — never hardcode them here.
+      - KOMF_KOMGA_BASE_URI=http://komga:25600
+      - KOMF_KOMGA_USER=${KOMF_KOMGA_USER}
+      - KOMF_KOMGA_PASSWORD=${KOMF_KOMGA_PASSWORD}
+      - KOMF_KAVITA_BASE_URI=http://kavita:8080
+      - KOMF_KAVITA_API_KEY=${KOMF_KAVITA_API_KEY}
+      - KOMF_LOG_LEVEL=INFO
+    volumes:
+      - "./komf/config:/config" # holds application.yml + Komf DB
+    restart: unless-stopped
+
+  #########################
+  # MEALIE - Recipe manager & meal planner
+  #########################
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:latest
+    container_name: mealie
+    restart: always
+    networks: [proxy]
+    ports:
+      - "${MEALIE_PORT}:9000"
+    deploy:
+      resources:
+        limits:
+          memory: 1000M
+    volumes:
+      - mealie-data:/app/data/
+    environment:
+      - ALLOW_SIGNUP=false
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - BASE_URL=https://mealie.${DOMAIN_NAME}
+
+  #########################
+  # SEERR - Media requests (community fork of Overseerr)
+  #########################
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    init: true
+    container_name: seerr
     networks:
       - proxy
       - arrs_default
     ports:
-      - "${OVERSEERR_PORT}:${OVERSEERR_PORT}"
+      - "${SEERR_PORT}:${SEERR_PORT}"
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - "./overseerr/config:/config"
+      - "./seerr/config:/app/config"
     restart: unless-stopped
-    
+
   #########################
   # TAUTULLI - Plex analytics
   #########################
@@ -166,3 +242,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
       - DISABLE_BUILTIN_AUTH=false #Set to true ONLY if you are using another auth provider (Authelia, Authentik, etc)
+
+volumes:
+  mealie-data:
+  fairshare-data:

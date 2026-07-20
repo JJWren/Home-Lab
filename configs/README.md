@@ -9,10 +9,10 @@ This directory contains sanitized versions of the configuration files used to tu
 * **Contains:** Custom Nginx advanced configuration snippets and site-level optimizations.
 * **Focus:** Security headers, proxy pass optimizations, and WebSocket support for services like Overseerr.
 
-### 🛡️ [gluetun/](./gluetun/)
+### 📝 [scripts/](./scripts/)
 
-* **Contains:** Sanitized VPN provider configurations.
-* **Focus:** Wireguard endpoint definitions and killswitch logic.
+* **Contains:** Automation scripts for stack lifecycle management.
+* **Focus:** Nightly backup rotation (stop → pull → archive → start) and container restart/update helpers.
 
 ## 🤫 Sanitization Strategy
 

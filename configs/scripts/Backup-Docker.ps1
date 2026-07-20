@@ -17,7 +17,17 @@ $7ZipPath = "C:\your\path\to\7-Zip\7z.exe"
 # --- Startup Priority Order ---
 # Define the order in which stacks should be stopped and started.
 # Stopping is done in reverse order to ensure dependencies are handled correctly.
-$StackOrder = @("arrs", "media-server", "utilities-stack", "exposed-services")
+# Keep this list in sync with the stacks you actually run - a stack missing here
+# is silently skipped by every step below.
+$StackOrder = @("arrs", "media-server", "utilities-stack", "exposed-services", "calcrony")
+
+# --- IMPORTANT: Named volumes are NOT covered by this backup ---
+# 7-Zip archives the stack folders (bind mounts), but named Docker volumes
+# (e.g. Postgres data, SQLite dbs kept off SMB shares) live inside the Docker
+# Desktop VM disk and never appear under $SourceDir. Back them up separately
+# while the stacks are stopped, e.g.:
+#   docker run --rm -v calcrony_pgdata:/src -v "${BackupDest}:/dst" alpine tar czf /dst/pgdata.tgz -C /src .
+# or use pg_dump for databases. Restoring is the reverse (tar xzf into the volume).
 
 # --- 1. Stop All Stacks (Reverse Order) ---
 # Stopping stacks in reverse order ensures that dependent services are stopped after the services they depend on,

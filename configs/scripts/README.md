@@ -18,6 +18,8 @@ A PowerShell script to safely backup Docker configuration and data. Its main fea
 - **Backup Rotation:** Retains only the backups from the last three days, automatically cleaning up older files.
 - **Cloud Integration:** Intended to work with cloud storage (such as OneDrive) for offsite backup.
 
+> ⚠️ **Named volumes are not included.** The 7-Zip archive only captures bind-mounted stack folders. Named Docker volumes (Postgres data, SQLite databases deliberately kept off SMB shares, DataProtection keys) live inside the Docker Desktop VM and must be backed up separately — see the commented `docker run … alpine tar` example in the script, or use `pg_dump` for databases.
+
 My setup utilizes Task Scheduler to run a similar version to this script on a nightly basis.
 
 #### Configuration

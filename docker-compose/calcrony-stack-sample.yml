@@ -1,0 +1,113 @@
+name: calcrony
+
+networks:
+  proxy:
+    external: true
+
+services:
+
+  #########################
+  # POSTGRES - CalCrony database
+  #########################
+  calcrony-db:
+    image: postgres:17-alpine
+    container_name: calcrony-db
+    environment:
+      POSTGRES_DB: ${CALCRONY_DB_NAME:-calcrony}
+      POSTGRES_USER: ${CALCRONY_DB_USER:-calcrony}
+      POSTGRES_PASSWORD: ${CALCRONY_DB_PASSWORD:?Set CALCRONY_DB_PASSWORD in .env}
+    volumes:
+      # Named volume: Postgres data must not live on an SMB-mapped drive.
+      # NOTE: named volumes live inside the Docker VM disk — back them up
+      # separately (pg_dump or a tar-from-volume job); file-level backups of
+      # the stack folder will NOT capture them.
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CALCRONY_DB_USER:-calcrony}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  #########################
+  # API - REST backend (migrations run on startup)
+  #########################
+  calcrony-api:
+    image: ghcr.io/jjwren/calcrony-api:${CALCRONY_IMAGE_TAG:-latest}
+    container_name: calcrony-api
+    networks: [proxy, default]
+    environment:
+      ConnectionStrings__CalCrony: Host=calcrony-db;Port=5432;Database=${CALCRONY_DB_NAME:-calcrony};Username=${CALCRONY_DB_USER:-calcrony};Password=${CALCRONY_DB_PASSWORD}
+      Auth__BootstrapApiKey: ${CALCRONY_API_KEY:?Set CALCRONY_API_KEY in .env}
+      ASPNETCORE_URLS: http://+:8080
+      Api__PublicBaseUrl: ${CALCRONY_PUBLIC_BASE_URL}
+      Calendar__Google__ClientId: ${GOOGLE_OAUTH_CLIENT_ID}
+      Calendar__Google__ClientSecret: ${GOOGLE_OAUTH_CLIENT_SECRET}
+      Calendar__DataProtectionKeyPath: /data/keys
+      Auth__Discord__ClientId: ${DISCORD_OAUTH_CLIENT_ID:?Set DISCORD_OAUTH_CLIENT_ID in .env}
+      Auth__Discord__ClientSecret: ${DISCORD_OAUTH_CLIENT_SECRET:?Set DISCORD_OAUTH_CLIENT_SECRET in .env}
+      Auth__Jwt__SigningKey: ${CALCRONY_JWT_SIGNING_KEY:?Set CALCRONY_JWT_SIGNING_KEY in .env}
+      Web__Origin: ${CALCRONY_WEB_ORIGIN:?Set CALCRONY_WEB_ORIGIN in .env}
+    ports:
+      - "${CALCRONY_API_PORT}:8080"
+    volumes:
+      # DataProtection keys encrypt stored OAuth tokens — losing this volume
+      # invalidates every linked calendar. Include it in volume backups.
+      - dpkeys:/data/keys
+    depends_on:
+      calcrony-db:
+        condition: service_healthy
+    healthcheck:
+      # Readiness (includes a DB probe); start_period covers migrations before Kestrel listens.
+      # Plain GET, not --spider: spider sends HEAD, which the minimal-API GET endpoint rejects.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+
+  #########################
+  # BOT - Discord bot (talks to the API only)
+  #########################
+  calcrony-bot:
+    image: ghcr.io/jjwren/calcrony-bot:${CALCRONY_IMAGE_TAG:-latest}
+    container_name: calcrony-bot
+    environment:
+      Discord__BotToken: ${DISCORD_BOT_TOKEN:?Set DISCORD_BOT_TOKEN in .env}
+      Discord__TestGuildId: ${DISCORD_TEST_GUILD_ID:-}
+      Api__BaseUrl: http://calcrony-api:8080
+      Api__ApiKey: ${CALCRONY_API_KEY}
+      Api__PublicBaseUrl: ${CALCRONY_PUBLIC_BASE_URL}
+    depends_on:
+      calcrony-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  #########################
+  # WEB - Static frontend (browser calls the API directly)
+  #########################
+  calcrony-web:
+    image: ghcr.io/jjwren/calcrony-web:${CALCRONY_IMAGE_TAG:-latest}
+    container_name: calcrony-web
+    networks: [proxy]
+    environment:
+      # Browser-visible API URL (the browser makes the calls, not this container).
+      API_BASE_URL: ${CALCRONY_PUBLIC_BASE_URL}
+      # Discord application id the invite links advertise (empty = production default).
+      DISCORD_APP_ID: ${DISCORD_APP_ID:-}
+    ports:
+      - "${CALCRONY_WEB_PORT}:80"
+    depends_on:
+      calcrony-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  dpkeys:
