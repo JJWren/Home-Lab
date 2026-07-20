@@ -162,7 +162,9 @@ services:
       - KOMF_KOMGA_BASE_URI=http://komga:25600
       - KOMF_KOMGA_USER=${KOMF_KOMGA_USER}
       - KOMF_KOMGA_PASSWORD=${KOMF_KOMGA_PASSWORD}
-      - KOMF_KAVITA_BASE_URI=http://kavita:8080
+      # Kavita listens on 5000 by default; if you changed the Port in Kavita's
+      # appsettings.json, match it here.
+      - KOMF_KAVITA_BASE_URI=http://kavita:5000
       - KOMF_KAVITA_API_KEY=${KOMF_KAVITA_API_KEY}
       - KOMF_LOG_LEVEL=INFO
     volumes:

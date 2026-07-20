@@ -65,7 +65,14 @@ Write-Host "Archiving to OneDrive (38GB+ total)..." -ForegroundColor Cyan
 try {
     # Archive every stack in $StackOrder plus the scripts folder, so adding a
     # stack to the list above automatically includes it in the backup.
-    $FoldersToArchive = ($StackOrder + "scripts") | ForEach-Object { Join-Path $SourceDir $_ }
+    # Filter with Test-Path so a missing folder is skipped (matching the
+    # stack-lifecycle steps above) instead of failing the 7-Zip run.
+    $FoldersToArchive = ($StackOrder + "scripts") |
+        ForEach-Object { Join-Path $SourceDir $_ } |
+        Where-Object { Test-Path $_ }
+    if (-not $FoldersToArchive) {
+        throw "No stack folders found under $SourceDir - nothing to archive."
+    }
     # -ssw: backup shared files, -snl: store symbolic links (fixes NPM cert issues)
     & $7ZipPath a -tzip "$FullDestPath" $FoldersToArchive "-xr!*.sock" "-xr!*.pipe" "-mx5" "-ssw" "-snl"
     Write-Host "Backup successful: $ZipFileName" -ForegroundColor Green

@@ -7,7 +7,7 @@ This directory contains sanitized versions of the configuration files used to tu
 ### 🌐 [nginx/](./nginx/)
 
 * **Contains:** Custom Nginx advanced configuration snippets and site-level optimizations.
-* **Focus:** Security headers, proxy pass optimizations, and WebSocket support for services like Overseerr.
+* **Focus:** Security headers, proxy pass optimizations, and WebSocket support for services like Seerr.
 
 ### 📝 [scripts/](./scripts/)
 
