@@ -17,7 +17,17 @@ $7ZipPath = "C:\your\path\to\7-Zip\7z.exe"
 # --- Startup Priority Order ---
 # Define the order in which stacks should be stopped and started.
 # Stopping is done in reverse order to ensure dependencies are handled correctly.
-$StackOrder = @("arrs", "media-server", "utilities-stack", "exposed-services")
+# Keep this list in sync with the stacks you actually run - a stack missing here
+# is silently skipped by every step below.
+$StackOrder = @("arrs", "media-server", "utilities-stack", "exposed-services", "calcrony")
+
+# --- IMPORTANT: Named volumes are NOT covered by this backup ---
+# 7-Zip archives the stack folders (bind mounts), but named Docker volumes
+# (e.g. Postgres data, SQLite dbs kept off SMB shares) live inside the Docker
+# Desktop VM disk and never appear under $SourceDir. Back them up separately
+# while the stacks are stopped, e.g.:
+#   docker run --rm -v calcrony_pgdata:/src -v "${BackupDest}:/dst" alpine tar czf /dst/pgdata.tgz -C /src .
+# or use pg_dump for databases. Restoring is the reverse (tar xzf into the volume).
 
 # --- 1. Stop All Stacks (Reverse Order) ---
 # Stopping stacks in reverse order ensures that dependent services are stopped after the services they depend on,
@@ -53,8 +63,18 @@ foreach ($stack in $StackOrder) {
 # The -mx5 option sets the compression level to a good balance between speed and compression ratio.
 Write-Host "Archiving to OneDrive (38GB+ total)..." -ForegroundColor Cyan
 try {
+    # Archive every stack in $StackOrder plus the scripts folder, so adding a
+    # stack to the list above automatically includes it in the backup.
+    # Filter with Test-Path so a missing folder is skipped (matching the
+    # stack-lifecycle steps above) instead of failing the 7-Zip run.
+    $FoldersToArchive = ($StackOrder + "scripts") |
+        ForEach-Object { Join-Path $SourceDir $_ } |
+        Where-Object { Test-Path $_ }
+    if (-not $FoldersToArchive) {
+        throw "No stack folders found under $SourceDir - nothing to archive."
+    }
     # -ssw: backup shared files, -snl: store symbolic links (fixes NPM cert issues)
-    & $7ZipPath a -tzip "$FullDestPath" "$SourceDir\arrs" "$SourceDir\media-server" "$SourceDir\utilities-stack" "$SourceDir\exposed-services" "$SourceDir\scripts" "-xr!*.sock" "-xr!*.pipe" "-mx5" "-ssw" "-snl"
+    & $7ZipPath a -tzip "$FullDestPath" $FoldersToArchive "-xr!*.sock" "-xr!*.pipe" "-mx5" "-ssw" "-snl"
     Write-Host "Backup successful: $ZipFileName" -ForegroundColor Green
 }
 catch {

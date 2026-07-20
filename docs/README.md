@@ -24,12 +24,14 @@ Deployment notes for the primary custom-coded application.
 
 _**Highlights:** Containerization, stateless privacy design, and public-facing ingress security._
 
+### 📅 Project: CalCrony
+Deployment notes for the scheduling platform (API + Discord bot + web + PostgreSQL).
+
+_**Highlights:** Healthcheck-gated startup ordering, pinned production releases, and prod/test stack isolation._
+
 ---
 
-## 🎨 Diagram Legend
-The documentation utilizes several architectural diagrams to visualize the flow of data. Below is a high-level logical map of the entire environment:
-
-### Core Technical Pillars
+## 🧭 Core Technical Pillars
 **Isolation:** Segregating public-facing web apps from internal media automation.
 
 **Hardening:** Using Nginx as a single-entry gatekeeper with automated SSL renewal.

@@ -16,7 +16,7 @@ A production-grade, hybrid-OS home infrastructure focused on **Automation**, **N
 * **Storage:**
     * **Primary:** Dedicated NAS (SMB/NFS integration).
     * **Operational:** Internal server storage for high-I/O Docker configurations.
-    * **Offsite:** Automated Google Drive synchronization for disaster recovery of configuration metadata.
+    * **Offsite:** Automated OneDrive synchronization for disaster recovery of configuration metadata.
 
 ## 📂 Repository Guide
 
@@ -33,6 +33,8 @@ A production-grade, hybrid-OS home infrastructure focused on **Automation**, **N
     * **Projects/:** Showcases of custom-developed applications hosted in the lab.
 
         * **FairShare Calculator:** Full-stack deployment specs and privacy-by-design architecture.
+
+        * **CalCrony:** Scheduling platform (API + Discord bot + web + PostgreSQL) with prod/test stack isolation.
 
         * **Personal Portfolio:** Nginx static hosting and security hardening.
 

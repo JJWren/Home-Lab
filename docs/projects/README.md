@@ -11,6 +11,13 @@ This directory documents the specific custom-built applications developed, conta
 
 **Focus**: A financial tool for child support calculations. This project demonstrates my ability to handle complex business logic and deploy it securely with an emphasis on data privacy.
 
+### 📅 CalCrony
+**Status**: Live / Production (+ parallel test stack)
+
+**Tech**: .NET, Discord.Net, PostgreSQL, Docker, GHCR.
+
+**Focus**: A scheduling platform (API + Discord bot + web) showcasing healthcheck-gated orchestration, pinned production releases, and prod/test isolation. See [calcrony-app.md](calcrony-app.md).
+
 ### 📁 Personal Portfolio & Brand Site (Draft)
 **Status**: Live / Production
 
