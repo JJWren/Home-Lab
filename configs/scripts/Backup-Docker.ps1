@@ -63,8 +63,11 @@ foreach ($stack in $StackOrder) {
 # The -mx5 option sets the compression level to a good balance between speed and compression ratio.
 Write-Host "Archiving to OneDrive (38GB+ total)..." -ForegroundColor Cyan
 try {
+    # Archive every stack in $StackOrder plus the scripts folder, so adding a
+    # stack to the list above automatically includes it in the backup.
+    $FoldersToArchive = ($StackOrder + "scripts") | ForEach-Object { Join-Path $SourceDir $_ }
     # -ssw: backup shared files, -snl: store symbolic links (fixes NPM cert issues)
-    & $7ZipPath a -tzip "$FullDestPath" "$SourceDir\arrs" "$SourceDir\media-server" "$SourceDir\utilities-stack" "$SourceDir\exposed-services" "$SourceDir\scripts" "-xr!*.sock" "-xr!*.pipe" "-mx5" "-ssw" "-snl"
+    & $7ZipPath a -tzip "$FullDestPath" $FoldersToArchive "-xr!*.sock" "-xr!*.pipe" "-mx5" "-ssw" "-snl"
     Write-Host "Backup successful: $ZipFileName" -ForegroundColor Green
 }
 catch {

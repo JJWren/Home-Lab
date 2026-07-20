@@ -18,7 +18,7 @@ CalCrony runs as its own compose stack ([`calcrony-stack-sample.yml`](../../dock
 ### 🔒 Security & Reliability Engineering
 
 1. **Pinned production images:** The prod stack pins `CALCRONY_IMAGE_TAG` to a release tag; only the parallel test stack tracks `latest`.
-2. **Prod/test isolation:** A second copy of the stack (`test-calcrony`) runs with prefixed container names, its own database, and a separate Discord application id — so test invites can never advertise the production bot.
+2. **Prod/test isolation:** A second copy of the stack runs as a separate Compose project (`docker compose -p test-calcrony`, or a second folder with its own `.env`), which gives it its own containers, network, and named volumes — plus a separate Discord application id, so test invites can never advertise the production bot.
 3. **Fail-fast configuration:** Required secrets use compose's `${VAR:?}` syntax; the stack refuses to start if a signing key, bot token, or DB password is missing.
 4. **Token encryption at rest:** Google Calendar OAuth tokens are encrypted with ASP.NET DataProtection keys persisted in a dedicated named volume (`dpkeys`).
 5. **Storage placement:** Postgres data lives in a named volume inside the Docker VM (never on an SMB share), and is backed up out-of-band from the file-level stack backup.

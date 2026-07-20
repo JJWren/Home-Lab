@@ -1,4 +1,7 @@
-name: calcrony
+# No top-level `name:` and no `container_name:` on purpose — the Compose
+# project name (folder name, or `docker compose -p calcrony` / `-p test-calcrony`)
+# prefixes containers, networks, and volumes, letting a prod and a test copy of
+# this stack run side by side on one host with fully isolated resources.
 
 networks:
   proxy:
@@ -11,7 +14,6 @@ services:
   #########################
   calcrony-db:
     image: postgres:17-alpine
-    container_name: calcrony-db
     environment:
       POSTGRES_DB: ${CALCRONY_DB_NAME:-calcrony}
       POSTGRES_USER: ${CALCRONY_DB_USER:-calcrony}
@@ -34,7 +36,6 @@ services:
   #########################
   calcrony-api:
     image: ghcr.io/jjwren/calcrony-api:${CALCRONY_IMAGE_TAG:-latest}
-    container_name: calcrony-api
     networks: [proxy, default]
     environment:
       ConnectionStrings__CalCrony: Host=calcrony-db;Port=5432;Database=${CALCRONY_DB_NAME:-calcrony};Username=${CALCRONY_DB_USER:-calcrony};Password=${CALCRONY_DB_PASSWORD}
@@ -72,7 +73,6 @@ services:
   #########################
   calcrony-bot:
     image: ghcr.io/jjwren/calcrony-bot:${CALCRONY_IMAGE_TAG:-latest}
-    container_name: calcrony-bot
     environment:
       Discord__BotToken: ${DISCORD_BOT_TOKEN:?Set DISCORD_BOT_TOKEN in .env}
       Discord__TestGuildId: ${DISCORD_TEST_GUILD_ID:-}
@@ -89,7 +89,6 @@ services:
   #########################
   calcrony-web:
     image: ghcr.io/jjwren/calcrony-web:${CALCRONY_IMAGE_TAG:-latest}
-    container_name: calcrony-web
     networks: [proxy]
     environment:
       # Browser-visible API URL (the browser makes the calls, not this container).

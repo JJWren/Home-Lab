@@ -151,7 +151,8 @@ services:
     container_name: komf
     networks: [proxy]
     ports:
-      - "${KOMF_PORT}:${KOMF_PORT}"
+      # Komf listens on 8085 inside the container; only the host side is configurable.
+      - "${KOMF_PORT}:8085"
     environment:
       # Point Komf at Komga/Kavita (service names resolve on the shared network).
       # Keep the credentials in .env — never hardcode them here.
@@ -199,7 +200,8 @@ services:
       - proxy
       - arrs_default
     ports:
-      - "${SEERR_PORT}:${SEERR_PORT}"
+      # Seerr listens on 5055 inside the container; only the host side is configurable.
+      - "${SEERR_PORT}:5055"
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
