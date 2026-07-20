@@ -53,7 +53,7 @@ services:
       # - ${READ_PORT}:${READ_PORT}
       - ${BAZ_PORT}:${BAZ_PORT}
       - ${FLARE_PORT}:${FLARE_PORT}
-      - ${NOTIFI_PORT}:${NOTIFI_PORT} # notifiarr
+      - ${NOTIFI_PORT}:5454 # notifiarr UI (fixed internal port)
     cap_add:
       - NET_ADMIN
     devices:
