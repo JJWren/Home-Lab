@@ -49,11 +49,12 @@ services:
   # FAIRSHARE - CS Calculator (API + Web, browser calls the API directly)
   #########################
   fairshare-api:
-    build:
-      # Clone JJWren/FairShare and point the context at it (or swap for a
-      # registry image if you publish one).
-      context: ../FairShare
-      dockerfile: src/FairShare.Api/Dockerfile
+    image: ghcr.io/jjwren/fairshare-api:latest
+    # To build from source instead: clone JJWren/FairShare beside this folder,
+    # remove the image: line above, and uncomment the build: stanza.
+    # build:
+    #   context: ../FairShare
+    #   dockerfile: src/FairShare.Api/Dockerfile
     container_name: fairshare-api
     networks: [proxy]
     ports:
@@ -88,9 +89,11 @@ services:
     restart: unless-stopped
 
   fairshare-web:
-    build:
-      context: ../FairShare
-      dockerfile: src/FairShare.Web/Dockerfile
+    image: ghcr.io/jjwren/fairshare-web:latest
+    # To build from source instead: see the note on fairshare-api above.
+    # build:
+    #   context: ../FairShare
+    #   dockerfile: src/FairShare.Web/Dockerfile
     container_name: fairshare-web
     networks: [proxy]
     ports:
@@ -177,7 +180,7 @@ services:
   mealie:
     image: ghcr.io/mealie-recipes/mealie:latest
     container_name: mealie
-    restart: always
+    restart: unless-stopped
     networks: [proxy]
     ports:
       - "${MEALIE_PORT}:9000"
@@ -219,7 +222,7 @@ services:
   # TAUTULLI - Plex analytics
   #########################
   tautulli:
-    image: ghcr.io/tautulli/tautulli
+    image: ghcr.io/tautulli/tautulli:latest
     container_name: tautulli
     restart: unless-stopped
     volumes:
@@ -241,7 +244,7 @@ services:
     networks: [proxy]
     ports:
       - "${WIZARR_PORT}:${WIZARR_PORT}"
-    image: ghcr.io/wizarrrr/wizarr
+    image: ghcr.io/wizarrrr/wizarr:latest
     volumes:
       - ./wizarr/data:/data
     environment:

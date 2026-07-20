@@ -96,7 +96,7 @@ services:
   #########################
 
   notifiarr:
-    image: golift/notifiarr
+    image: golift/notifiarr:latest
     container_name: notifiarr
     restart: unless-stopped
     network_mode: "service:gluetun"

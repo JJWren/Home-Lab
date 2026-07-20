@@ -1,4 +1,3 @@
-
 # 📅 Project: CalCrony
 
 **Source Code:** [JJWren/CalCrony](https://github.com/JJWren/CalCrony)
