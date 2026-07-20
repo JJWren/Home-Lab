@@ -38,7 +38,7 @@ services:
     image: ghcr.io/jjwren/calcrony-api:${CALCRONY_IMAGE_TAG:-latest}
     networks: [proxy, default]
     environment:
-      ConnectionStrings__CalCrony: Host=calcrony-db;Port=5432;Database=${CALCRONY_DB_NAME:-calcrony};Username=${CALCRONY_DB_USER:-calcrony};Password=${CALCRONY_DB_PASSWORD}
+      ConnectionStrings__CalCrony: Host=calcrony-db;Port=5432;Database=${CALCRONY_DB_NAME:-calcrony};Username=${CALCRONY_DB_USER:-calcrony};Password=${CALCRONY_DB_PASSWORD:?Set CALCRONY_DB_PASSWORD in .env}
       Auth__BootstrapApiKey: ${CALCRONY_API_KEY:?Set CALCRONY_API_KEY in .env}
       ASPNETCORE_URLS: http://+:8080
       Api__PublicBaseUrl: ${CALCRONY_PUBLIC_BASE_URL}

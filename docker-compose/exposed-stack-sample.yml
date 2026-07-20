@@ -76,7 +76,10 @@ services:
       # readonly database" / segfaults). The db lives in Docker's VM disk instead.
       - "fairshare-data:/data"
     healthcheck:
-      # aspnet images ship no curl/wget; bash + /dev/tcp does the HTTP GET.
+      # The default Debian-based mcr.microsoft.com/dotnet/aspnet image ships no
+      # curl/wget, but it does have bash — so bash + /dev/tcp does the HTTP GET.
+      # NOTE: Alpine/distroless .NET images have no bash either; there, install
+      # curl/wget in the Dockerfile and swap this test accordingly.
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /healthz HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
       interval: 10s
       timeout: 3s
