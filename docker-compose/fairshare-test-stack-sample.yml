@@ -1,0 +1,61 @@
+# FairShare TEST stack - test.easychildsupport.fyi (web) + api-test.easychildsupport.fyi (API).
+# Tracks the :main images (every merge to FairShare main publishes them) and is reset nightly by
+# reset-test-stack.ps1 (pull -> down -v -> up; the seeded admin comes back from .env). Its own
+# volume, its own JWT key, its own admin - never point it at production data. The container
+# names below are the reset script's safety key.
+name: fairshare-test
+
+networks:
+  proxy:
+    external: true
+    name: proxy
+
+services:
+  fairshare-test-api:
+    image: ghcr.io/jjwren/fairshare-api:${FAIRSHARE_TEST_TAG:-main}
+    pull_policy: always
+    container_name: fairshare-test-api
+    networks: [proxy]
+    ports:
+      - "${FAIRSHARE_TEST_API_PORT:-5869}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ConnectionStrings__Default: "Data Source=/data/fairshare.db"
+      Jwt__SigningKey: "${FAIRSHARE_TEST_JWT_SIGNING_KEY:?Set FAIRSHARE_TEST_JWT_SIGNING_KEY in .env}"
+      AdminSeed__Enabled: "true"
+      AdminSeed__User: "${AdminSeed__User:?Set AdminSeed__User in .env}"
+      AdminSeed__Password: "${AdminSeed__Password:?Set AdminSeed__Password in .env}"
+      AdminSeed__LogGeneratedPassword: "false"
+      Auth__AllowSelfRegistration: "${ALLOW_SELF_REGISTRATION:-false}"
+      Cors__AllowedOrigins__0: "${FAIRSHARE_TEST_WEB_ORIGIN:?Set FAIRSHARE_TEST_WEB_ORIGIN in .env}"
+    volumes:
+      - "fairshare-test-data:/data"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /healthz HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+
+  fairshare-test-web:
+    image: ghcr.io/jjwren/fairshare-web:${FAIRSHARE_TEST_TAG:-main}
+    pull_policy: always
+    container_name: fairshare-test-web
+    networks: [proxy]
+    ports:
+      - "${FAIRSHARE_TEST_PORT:-5868}:80"
+    environment:
+      API_BASE_URL: "${FAIRSHARE_TEST_API_BASE_URL:?Set FAIRSHARE_TEST_API_BASE_URL in .env}"
+    depends_on:
+      fairshare-test-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    restart: unless-stopped
+
+volumes:
+  fairshare-test-data:

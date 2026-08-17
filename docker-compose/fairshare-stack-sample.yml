@@ -1,0 +1,68 @@
+# FairShare PRODUCTION stack - easychildsupport.fyi (web) + api.easychildsupport.fyi (API).
+# Pinned to a released image (FAIRSHARE_VERSION in .env). Moved out of exposed-services on
+# 2026-08-17; the SQLite database was copied from exposed-services_fairshare-data into this
+# stack's own volume (fairshare-prod_fairshare-data). Sibling .env holds the secrets.
+#
+# Upgrade: bump FAIRSHARE_VERSION in .env, then `docker compose pull && docker compose up -d`.
+name: fairshare-prod
+
+networks:
+  proxy:
+    external: true
+    name: proxy
+
+services:
+  fairshare-api:
+    image: ghcr.io/jjwren/fairshare-api:${FAIRSHARE_VERSION:?Set FAIRSHARE_VERSION in .env}
+    container_name: fairshare-api
+    networks: [proxy]
+    ports:
+      - "${FAIRSHARE_API_PORT:-5859}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      # /data (not /app/data): the API image pre-creates /data owned by its non-root
+      # user (uid 1654); any other mountpoint comes up root-owned and unwritable.
+      ConnectionStrings__Default: "Data Source=/data/fairshare.db"
+      Jwt__SigningKey: "${FAIRSHARE_JWT_SIGNING_KEY:?Set FAIRSHARE_JWT_SIGNING_KEY in .env}"
+      AdminSeed__Enabled: "${ADMIN_SEED_ENABLED:-true}"
+      AdminSeed__User: "${AdminSeed__User}"
+      AdminSeed__Password: "${AdminSeed__Password}"
+      AdminSeed__LogGeneratedPassword: "${ADMIN_SEED_LOG_GENERATED_PASSWORD:-false}"
+      Auth__AllowSelfRegistration: "${ALLOW_SELF_REGISTRATION:-false}"
+      # The SPA origin the browser calls the API from (CORS).
+      Cors__AllowedOrigins__0: "${FAIRSHARE_WEB_ORIGIN:?Set FAIRSHARE_WEB_ORIGIN in .env}"
+    volumes:
+      # Named volume, NOT a bind mount: this compose lives on a mapped network drive,
+      # and SQLite cannot hold write locks over SMB. The db lives in Docker's VM disk.
+      - "fairshare-data:/data"
+    healthcheck:
+      # aspnet images ship no curl/wget; bash + /dev/tcp does the HTTP GET.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /healthz HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+
+  fairshare-web:
+    image: ghcr.io/jjwren/fairshare-web:${FAIRSHARE_VERSION:?Set FAIRSHARE_VERSION in .env}
+    container_name: fairshare-web
+    networks: [proxy]
+    ports:
+      - "${FAIRSHARE_PORT:-5858}:80"
+    environment:
+      # Browser-visible API URL (the browser makes the calls, not this container);
+      # also injected into the CSP connect-src at container start.
+      API_BASE_URL: "${FAIRSHARE_API_BASE_URL:?Set FAIRSHARE_API_BASE_URL in .env}"
+    depends_on:
+      fairshare-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    restart: unless-stopped
+
+volumes:
+  fairshare-data:

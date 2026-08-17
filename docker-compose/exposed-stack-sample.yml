@@ -46,72 +46,6 @@ services:
     restart: unless-stopped
 
   #########################
-  # FAIRSHARE - CS Calculator (API + Web, browser calls the API directly)
-  #########################
-  fairshare-api:
-    image: ghcr.io/jjwren/fairshare-api:latest
-    # To build from source instead: clone JJWren/FairShare beside this folder,
-    # remove the image: line above, and uncomment the build: stanza.
-    # build:
-    #   context: ../FairShare
-    #   dockerfile: src/FairShare.Api/Dockerfile
-    container_name: fairshare-api
-    networks: [proxy]
-    ports:
-      - "${FAIRSHARE_API_PORT}:8080"
-    environment:
-      ASPNETCORE_ENVIRONMENT: "Production"
-      # /data (not /app/data): the API image pre-creates /data owned by its non-root
-      # user; any other mountpoint comes up root-owned and unwritable.
-      ConnectionStrings__Default: "Data Source=/data/fairshare.db"
-      Jwt__SigningKey: "${FAIRSHARE_JWT_SIGNING_KEY:?Set FAIRSHARE_JWT_SIGNING_KEY in .env}"
-      AdminSeed__Enabled: "${ADMIN_SEED_ENABLED:-true}"
-      AdminSeed__User: "${AdminSeed__User}"
-      AdminSeed__Password: "${AdminSeed__Password}"
-      AdminSeed__LogGeneratedPassword: "${ADMIN_SEED_LOG_GENERATED_PASSWORD:-true}"
-      Auth__AllowSelfRegistration: "${ALLOW_SELF_REGISTRATION:-false}"
-      Cors__AllowedOrigins__0: "${FAIRSHARE_WEB_ORIGIN}"
-    volumes:
-      # Named volume, NOT a bind mount: if this compose lives on a mapped network
-      # drive, SQLite cannot hold write locks over SMB ("attempt to write a
-      # readonly database" / segfaults). The db lives in Docker's VM disk instead.
-      - "fairshare-data:/data"
-    healthcheck:
-      # The default Debian-based mcr.microsoft.com/dotnet/aspnet image ships no
-      # curl/wget, but it does have bash — so bash + /dev/tcp does the HTTP GET.
-      # NOTE: Alpine/distroless .NET images have no bash either; there, install
-      # curl/wget in the Dockerfile and swap this test accordingly.
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /healthz HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
-      interval: 10s
-      timeout: 3s
-      retries: 6
-      start_period: 15s
-    restart: unless-stopped
-
-  fairshare-web:
-    image: ghcr.io/jjwren/fairshare-web:latest
-    # To build from source instead: see the note on fairshare-api above.
-    # build:
-    #   context: ../FairShare
-    #   dockerfile: src/FairShare.Web/Dockerfile
-    container_name: fairshare-web
-    networks: [proxy]
-    ports:
-      - "${FAIRSHARE_PORT}:80"
-    environment:
-      # Browser-visible API URL (the browser makes the calls, not this container).
-      API_BASE_URL: "${FAIRSHARE_API_BASE_URL}"
-    depends_on:
-      fairshare-api:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
-      interval: 10s
-      timeout: 3s
-      retries: 6
-    restart: unless-stopped
-
-  #########################
   # KAVITA - eBook reader
   #########################
   kavita:
@@ -255,4 +189,3 @@ services:
 
 volumes:
   mealie-data:
-  fairshare-data:

@@ -24,7 +24,7 @@ To ensure ease of maintenance, clear separation of concerns, and minimal blast r
 * **Purpose:** Secure ingress and routing for public-facing services and custom web apps.
 * **Key Features:**
   - Sits behind an Nginx-based reverse proxy (Nginx Proxy Manager) with automated SSL and multi-app support.
-  - Includes apps like Seerr (media requests), FairShare (custom CS calculator, split into API + web containers), Mealie (recipes), Actual (budgeting), Kavita/Komga/Komf (reading + metadata), Audiobookshelf, Tautulli, and Wizarr.
+  - Includes apps like Seerr (media requests), Mealie (recipes), Actual (budgeting), Kavita/Komga/Komf (reading + metadata), Audiobookshelf, Tautulli, and Wizarr.
 * **Sample Compose:** [`exposed-stack-sample.yml`](exposed-stack-sample.yml)
 
 ### 3. Media Server Stack
@@ -51,6 +51,15 @@ To ensure ease of maintenance, clear separation of concerns, and minimal blast r
   - Required-secret enforcement via `${VAR:?}` so the stack refuses to start half-configured.
   - Named volumes for Postgres data and DataProtection keys (see backup notes in [`../configs/scripts/`](../configs/scripts/)).
 * **Sample Compose:** [`calcrony-stack-sample.yml`](calcrony-stack-sample.yml)
+
+### 6. FairShare Stacks (Custom App — production + test)
+
+* **Purpose:** [FairShare](https://github.com/JJWren/FairShare), a child-support calculator (Blazor WASM SPA + REST API, SQLite), as its own pair of stacks behind the same reverse proxy — moved out of the exposed-services stack in August 2026 when it got its own domain.
+* **Key Features:**
+  - **Production** pins an immutable release image (`ghcr.io/jjwren/fairshare-{api,web}:<version>`, published by the app's release workflow), keeps SQLite in a named volume (never a bind mount on the SMB share), and is fronted by `easychildsupport.fyi` / `api.easychildsupport.fyi`.
+  - **Test** tracks the `:main` images published on every merge, runs on its own volume / JWT key / admin, and is reset nightly by a scheduled `reset-test-stack.ps1` (pull → `down -v` → up) that refuses to run against anything but the test project.
+  - Required-secret enforcement via `${VAR:?}`; healthcheck-gated startup (API → web).
+* **Sample Compose:** [`fairshare-stack-sample.yml`](fairshare-stack-sample.yml), [`fairshare-test-stack-sample.yml`](fairshare-test-stack-sample.yml)
 
 ## 🛠️ Deployment Instructions
 
