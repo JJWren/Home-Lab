@@ -1,6 +1,6 @@
 # FairShare TEST stack - test.easychildsupport.fyi (web) + api-test.easychildsupport.fyi (API).
 # Tracks the :main images (every merge to FairShare main publishes them) and is reset nightly by
-# reset-test-stack.ps1 (pull -> down -v -> up; the seeded admin comes back from .env). Its own
+# configs/scripts/fairshare-reset-test-stack.ps1 (pull -> down -v -> up; the seeded admin comes back from .env). Its own
 # volume, its own JWT key, its own admin - never point it at production data. The container
 # names below are the reset script's safety key.
 name: fairshare-test

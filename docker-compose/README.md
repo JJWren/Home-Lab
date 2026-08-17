@@ -57,7 +57,7 @@ To ensure ease of maintenance, clear separation of concerns, and minimal blast r
 * **Purpose:** [FairShare](https://github.com/JJWren/FairShare), a child-support calculator (Blazor WASM SPA + REST API, SQLite), as its own pair of stacks behind the same reverse proxy — moved out of the exposed-services stack in August 2026 when it got its own domain.
 * **Key Features:**
   - **Production** pins an immutable release image (`ghcr.io/jjwren/fairshare-{api,web}:<version>`, published by the app's release workflow), keeps SQLite in a named volume (never a bind mount on the SMB share), and is fronted by `easychildsupport.fyi` / `api.easychildsupport.fyi`.
-  - **Test** tracks the `:main` images published on every merge, runs on its own volume / JWT key / admin, and is reset nightly by a scheduled `reset-test-stack.ps1` (pull → `down -v` → up) that refuses to run against anything but the test project.
+  - **Test** tracks the `:main` images published on every merge, runs on its own volume / JWT key / admin, and is reset nightly by a scheduled [`fairshare-reset-test-stack.ps1`](../configs/scripts/fairshare-reset-test-stack.ps1) (pull → `down -v` → up) that refuses to run against anything but the test project.
   - Required-secret enforcement via `${VAR:?}`; healthcheck-gated startup (API → web).
 * **Sample Compose:** [`fairshare-stack-sample.yml`](fairshare-stack-sample.yml), [`fairshare-test-stack-sample.yml`](fairshare-test-stack-sample.yml)
 

@@ -25,8 +25,8 @@ services:
       ConnectionStrings__Default: "Data Source=/data/fairshare.db"
       Jwt__SigningKey: "${FAIRSHARE_JWT_SIGNING_KEY:?Set FAIRSHARE_JWT_SIGNING_KEY in .env}"
       AdminSeed__Enabled: "${ADMIN_SEED_ENABLED:-true}"
-      AdminSeed__User: "${AdminSeed__User}"
-      AdminSeed__Password: "${AdminSeed__Password}"
+      AdminSeed__User: "${AdminSeed__User:?Set AdminSeed__User in .env}"
+      AdminSeed__Password: "${AdminSeed__Password:?Set AdminSeed__Password in .env (leave ADMIN_SEED_ENABLED=false once the admin exists)}"
       AdminSeed__LogGeneratedPassword: "${ADMIN_SEED_LOG_GENERATED_PASSWORD:-false}"
       Auth__AllowSelfRegistration: "${ALLOW_SELF_REGISTRATION:-false}"
       # The SPA origin the browser calls the API from (CORS).
