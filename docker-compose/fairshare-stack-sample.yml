@@ -31,6 +31,8 @@ services:
       Auth__AllowSelfRegistration: "${ALLOW_SELF_REGISTRATION:-false}"
       # The SPA origin the browser calls the API from (CORS).
       Cors__AllowedOrigins__0: "${FAIRSHARE_WEB_ORIGIN:?Set FAIRSHARE_WEB_ORIGIN in .env}"
+      # DataProtection keys on the data volume so Identity tokens survive container recreates.
+      DataProtection__KeysPath: "/data/keys"
     volumes:
       # Named volume, NOT a bind mount: this compose lives on a mapped network drive,
       # and SQLite cannot hold write locks over SMB. The db lives in Docker's VM disk.

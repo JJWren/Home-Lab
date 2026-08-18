@@ -28,6 +28,7 @@ services:
       AdminSeed__LogGeneratedPassword: "false"
       Auth__AllowSelfRegistration: "${ALLOW_SELF_REGISTRATION:-false}"
       Cors__AllowedOrigins__0: "${FAIRSHARE_TEST_WEB_ORIGIN:?Set FAIRSHARE_TEST_WEB_ORIGIN in .env}"
+      DataProtection__KeysPath: "/data/keys"
     volumes:
       - "fairshare-test-data:/data"
     healthcheck:
