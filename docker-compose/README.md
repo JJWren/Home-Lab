@@ -47,7 +47,8 @@ To ensure ease of maintenance, clear separation of concerns, and minimal blast r
 * **Purpose:** Production deployment of [CalCrony](https://github.com/JJWren/CalCrony), a custom scheduling app (API + Discord bot + web frontend + PostgreSQL).
 * **Key Features:**
   - Healthcheck-gated startup ordering (`depends_on: condition: service_healthy`) — Postgres → API (runs migrations) → bot/web.
-  - Pinned image tags in production (`CALCRONY_IMAGE_TAG`), `latest` reserved for a parallel test stack with its own Discord app id.
+  - Pinned image tags in production (`CALCRONY_IMAGE_TAG`); a parallel test stack with its own Discord app id tracks the `:main` images published on every merge and is reset nightly by [`calcrony-reset-test-stack.ps1`](../configs/scripts/calcrony-reset-test-stack.ps1) (pull → `down -v` → up; the API migrates a fresh database on boot).
+  - Fronted by `calcrony.app` / `api.calcrony.app` (test: `test.` / `api-test.`); the old `*.theguywiththedogs.dev` names 301 to the new ones, so the links the bot has already posted keep working. OAuth callbacks (`/auth/discord/callback`, `/oauth/google/callback`) live on the API host and must be registered for it.
   - Required-secret enforcement via `${VAR:?}` so the stack refuses to start half-configured.
   - Named volumes for Postgres data and DataProtection keys (see backup notes in [`../configs/scripts/`](../configs/scripts/)).
 * **Sample Compose:** [`calcrony-stack-sample.yml`](calcrony-stack-sample.yml)
