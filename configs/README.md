@@ -12,7 +12,7 @@ This directory contains sanitized versions of the configuration files used to tu
 ### 📝 [scripts/](./scripts/)
 
 * **Contains:** Automation scripts for stack lifecycle management.
-* **Focus:** Nightly backup rotation (stop → pull → archive → start) and container restart/update helpers.
+* **Focus:** Weekly backup rotation (stop → pull → archive → start) and container restart/update helpers.
 
 ## 🤫 Sanitization Strategy
 

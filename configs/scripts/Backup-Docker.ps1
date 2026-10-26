@@ -96,14 +96,16 @@ foreach ($stack in $StackOrder) {
     }
 }
 
-# --- 5. Cleanup Old Backups (Keep last 3 days) ---
+# --- 5. Cleanup Old Backups (Keep last 3 weeks) ---
 # This cleanup step ensures that you don't accumulate too many old backups over time,
 # which can take up valuable storage space.
-# The script looks for zip files in the backup destination and removes any that were created more than 3 days ago.
-# You can adjust the retention period by changing the number of days in the AddDays(-3) method.
-Write-Host "Cleaning up old backups (3-day retention)..." -ForegroundColor Gray
-Get-ChildItem -Path $BackupDest -Filter "*.zip" | 
-    Where-Object { $_.CreationTime -lt (Get-Date).AddDays(-3) } | 
+# The script looks for zip files in the backup destination and removes any that were created more than 21 days ago.
+# The script is scheduled weekly, so 21 days keeps the last three backups.
+# Match the retention period to your schedule by changing the number of days in the AddDays(-21) method -
+# a window shorter than the interval between runs leaves only the newest backup.
+Write-Host "Cleaning up old backups (21-day retention)..." -ForegroundColor Gray
+Get-ChildItem -Path $BackupDest -Filter "*.zip" |
+    Where-Object { $_.CreationTime -lt (Get-Date).AddDays(-21) } |
     Remove-Item -Force
 
 Set-Location $SourceDir
